@@ -1,6 +1,6 @@
 #The custom outputs are designed to work with Home Assistants energy system inputs.. 
 #You will definitely want to rename the sensors + customize the shunt values but this gives you an idea.. 
-#My voltage comes from the 2:1 voltage divider so the power outputs get multiplied by 2 and are scaled to kW as I prefer that to Watts
+#My voltage comes from the 2:1 voltage divider so the power outputs get multiplied by 2 as well and are scaled to kW as I prefer that to Watts for ease of reading at these power levesl
 
 i2c:
   sda: 21
