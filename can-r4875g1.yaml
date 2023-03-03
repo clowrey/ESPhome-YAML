@@ -1,0 +1,508 @@
+esphome:
+  name: can-r4875g1
+#  includes:
+#    - R48xx.h
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: INFO
+  baud_rate: 921600 # needed to be faster to not miss some CAN response logs 
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "J5Oa8ZJIvrl1+YAzynMan+OVTjDjv6ujephFDWecqfA="
+
+ota:
+  password: "69882c4f9991372c9f1bcde051130edd"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Can-R4875G1 Fallback Hotspot"
+    password: "i2B8YGCRJPwB"
+
+captive_portal:
+
+
+#- platform: custom
+#  lambda: |-
+#    auto R4875G1 = new R48xx();
+#    App.register_component(R4875G1);
+#    return {R4875G1};
+#
+#  sensors:
+#    name: "R4875G1"
+
+
+
+binary_sensor:
+  - platform: status
+    # name: "Node Status" do not publish
+    id: system_status
+  - platform: gpio
+    pin:
+      number: GPIO0
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    # name: "T-Display Button Input 0" do not publish
+    id: tdisplay_button_input_0
+    on_release:
+      then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108180FE # address to set data values to all power supplies
+          data: !lambda |-
+                  uint16_t val = 52 * 1024.0;
+                  return {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, (unsigned char)((val >> 8) & 0xFF), (unsigned char)(val & 0xFF)};
+      
+              # uint16_t val = 52.2 * 1024.0;
+              # return [ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, ((val >> 8) & 0xFF), (val & 0xFF) ];
+              # return {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC8, 0x00};
+      
+  - platform: gpio
+    pin:
+      number: GPIO35
+      inverted: true
+    # name: "T-Display Button Input 1" do not publish
+    id: tdisplay_button_input_1
+    on_release:
+      then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108280FE # address to set data values of all power supplies
+          data: !lambda |-
+                  uint16_t val = 51 * 1024.0;
+                  return {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, (unsigned char)((val >> 8) & 0xFF), (unsigned char)(val & 0xFF)};
+          
+          
+          #data: [ 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x96 ] #set default amps to 5-- only accepts values in .1 amp resolution
+          #data: [ 0x01, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x96 ] #set on line amps to 5-- only accepts values in .1 amp resolution
+          #data: [ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDC, 0xCC ] #set on line voltage to 55.2 -- only accepts values in .1 volt resolution
+          
+
+interval: # used to get status data from the PSUs automatically - actual data publishing happens in the canbus setup section
+  - interval: 1sec
+    then:
+    - canbus.send:
+        data: [ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ]
+        use_extended_id: true
+        can_id: 0x108040FE # Read status of all devices (address 0)
+    
+    
+text_sensor:
+  - platform: template
+    name: "Rectifier #1 Status"
+    id: rectifier_1_status
+    lambda: |-
+      return {}; //publish from other places
+    # update_interval: 60s
+    
+  - platform: template
+    name: "Rectifier #2 Status"
+    id: rectifier_2_status
+    lambda: |-
+      return {}; //publish from other places
+    # update_interval: 60s
+            
+sensor:
+  - platform: template
+    name: "Rectifier #1 Input Power"
+    id: rectifier_1_input_power
+    update_interval: never #use publish commands elsewhere to update
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Input Frequency"
+    id: rectifier_1_input_frequency
+    update_interval: never
+    unit_of_measurement: "Hz"
+    state_class: "measurement"
+    accuracy_decimals: 2    
+    
+  - platform: template
+    name: "Rectifier #1 Input Current"
+    id: rectifier_1_input_current
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Output Power"
+    id: rectifier_1_output_power
+    update_interval: never
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Efficiency"
+    id: rectifier_1_efficiency
+    update_interval: never
+    unit_of_measurement: "%"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Output Voltage"
+    id: rectifier_1_output_voltage
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Current Limit"
+    id: rectifier_1_output_current_limit
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Input Voltage"
+    id: rectifier_1_input_voltage
+    update_interval: never
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Output Temperature"
+    id: rectifier_1_output_temperature
+    update_interval: never
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Input Temperature"
+    id: rectifier_1_input_temperature
+    update_interval: never
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Output Current 0x81"
+    id: rectifier_1_output_current_0x81
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: "measurement"
+    accuracy_decimals: 2
+
+  - platform: template
+    name: "Rectifier #1 Output Current 0x82"
+    id: rectifier_1_output_current_0x82
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #1 Output Current Realtime"
+    id: rectifier_1_output_current_realtime
+    update_interval: never
+    unit_of_measurement: "A"
+    device_class: current
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+
+    
+
+    
+    
+  - platform: template
+    name: "Rectifier #2 Current Value"
+    id: rectifier_2_current_value
+    update_interval: never
+    unit_of_measurement: "A"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+  - platform: template
+    name: "Rectifier #2 Output Voltage"
+    id: rectifier_2_output_voltage
+    update_interval: never
+    unit_of_measurement: "V"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+    
+  - platform: template
+    name: "Rectifier #2 Current Setpoint"
+    id: rectifier_2_output_current_setpoint
+    update_interval: never
+    unit_of_measurement: "A"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    
+    
+    
+    
+    
+    
+    
+number:
+  - platform: template
+    name: "Charger #1 Voltage Setpoint"
+    id: voltage_setpoint
+    optimistic: true # if false value will not update in HA core until it is published back somwhere in this YAML - allows response
+    max_value: 58
+    min_value: 48
+    step: '0.1'
+    unit_of_measurement: "V"
+    initial_value: '55'
+    restore_value: true # saves and loads the state to RTC/Flash.
+    mode: box # how it is displayed in HA GUI - auto, box, slider
+    icon: "mdi:battery-heart-variant"
+    set_action:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108180FE # address 1
+            data: !lambda |-
+                    uint16_t val = x * 1024.0;
+                    return {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, (unsigned char)((val >> 8) & 0xFF), (unsigned char)(val & 0xFF)};
+                    
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108280FE # address 2
+            data: !lambda |-
+                    uint16_t val = x * 1024.0;
+                    return {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, (unsigned char)((val >> 8) & 0xFF), (unsigned char)(val & 0xFF)};
+                    
+  - platform: template
+    name: "Charger #1 Current Setpoint"
+    id: current_setpoint
+    optimistic: true # if false value will not update in HA core until it is published back somwhere in this YAML - allows response
+    max_value: 50 # could be 75 depending on rectifier model
+    min_value: 0
+    step: '0.1'
+    unit_of_measurement: "A"
+    initial_value: '5'
+    restore_value: true # saves and loads the state to RTC/Flash.
+    mode: box # how it is displayed in HA GUI - auto, box, slider
+    icon: "mdi:battery-heart-variant"
+    set_action:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108180FE # address 1
+            data: !lambda |-
+                    uint16_t val = x * 20.0;
+                    return {0x01, 0x03, 0x00, 0x00, 0x00, 0x00, (unsigned char)((val >> 8) & 0xFF), (unsigned char)(val & 0xFF)};
+                    
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108280FE # address 2
+            data: !lambda |-
+                    uint16_t val = x * 20.0;
+                    return {0x01, 0x03, 0x00, 0x00, 0x00, 0x00, (unsigned char)((val >> 8) & 0xFF), (unsigned char)(val & 0xFF)};
+                    
+
+canbus:
+  - platform: esp32_can
+    tx_pin: GPIO27
+    rx_pin: GPIO26
+    use_extended_id: true
+    can_id: 4
+    on_frame:
+    - can_id: 0x1081407F # address #1 received statistics frame
+      use_extended_id: true
+      then:
+        #- logger.log:
+        #    level: INFO
+        #    format: "Status Type Byte: 0x%02x Data: 0x%02x 0x%02x 0x%02x 0x%02x"
+        #    args: [ '(uint)x[1]', '(uint)x[4]', '(uint)x[5]', '(uint)x[6]', '(uint)x[7]' ]
+            
+        - lambda: |-
+            auto status_type = x[1];
+            float value = double((x[4]<<24) | (x[5]<<16) | (x[6]<<8) | (x[7])); //combine bytes into full value
+            switch (status_type)
+            {
+              case 0x70:
+                value = value / 1024; //scale value
+                ESP_LOGI("canbus", "rectifier #1 input power: %.02f", value);
+                id(rectifier_1_input_power).publish_state(value);
+                break;
+              case 0x71:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 input frequency: %.02f", value);
+                id(rectifier_1_input_frequency).publish_state(value);
+                break;
+              case 0x72:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 input current: %.02f", value);
+                id(rectifier_1_input_current).publish_state(value);
+                break;
+              case 0x73:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 output power: %.02f", value);
+                id(rectifier_1_output_power).publish_state(value);
+                break;
+              case 0x74:
+                value = value / 10.24;
+                ESP_LOGI("canbus", "rectifier #1 efficiency: %.02f", value);
+                id(rectifier_1_efficiency).publish_state(value);
+                break;
+              case 0x75:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 output voltage: %.02f", value);
+                id(rectifier_1_output_voltage).publish_state(value);
+                break;
+              case 0x76:
+                value = value / 20;
+                ESP_LOGI("canbus", "rectifier #1 output current limit: %.02f", value);
+                id(rectifier_1_output_current_limit).publish_state(value);
+                break;
+              case 0x78:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 input voltage: %.02f", value);
+                id(rectifier_1_input_voltage).publish_state(value);
+                break;
+              case 0x7F:
+                value = value / 1024; 
+                ESP_LOGI("canbus", "rectifier #1 output temperature: %.02f", value);
+                id(rectifier_1_output_temperature).publish_state(value);
+                break;
+              case 0x80:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 input temperature: %.02f", value);
+                id(rectifier_1_input_temperature).publish_state(value);
+                break;
+              case 0x81:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 output current 0x81: %.02f", value);
+                id(rectifier_1_output_current_0x81).publish_state(value);
+                break;
+              case 0x82:
+                value = value / 1024;
+                ESP_LOGI("canbus", "rectifier #1 output current 0x82: %.02f", value);
+                id(rectifier_1_output_current_0x82).publish_state(value);
+                break;
+            }
+    - can_id: 0x1081807e # address #1 receive settings ACK frame -- only sent from PSU if the actual address is used, not the global 0 address
+      use_extended_id: true
+      then:
+        - logger.log:
+            level: INFO
+            format: "------------------------------- charger #1 ACK response: 0x%02x Data: 0x%02x 0x%02x 0x%02x 0x%02x"
+            args: [ '(uint)x[0]', '(uint)x[4]', '(uint)x[5]', '(uint)x[6]', '(uint)x[7]' ]
+        - lambda: |-
+            float value = double((x[4]<<24) | (x[5]<<16) | (x[6]<<8) | (x[7])); //combine bytes into full value
+            switch (x[1])
+            {
+              case 0x00: case 0x01:
+                // ESP_LOGI("canbus", "rectifier #1 ACK response voltage: %.02fV", value / 1024);
+                char message[50];
+                sprintf(message, "ACK response voltage: %.02fV", value / 1024);
+                id(rectifier_1_status).publish_state(message);
+                break;
+              case 0x03: case 0x04:
+                // ESP_LOGI("canbus", "rectifier #1 ACK response current: %.02fA", value / 20);
+                char message1[50];
+                sprintf(message1, "ACK response current: %.02fA", value / 20); // divisor is 20 for setting and the ACK - but 30 for status messages
+                id(rectifier_1_status).publish_state(message1);
+                break;
+            }
+            
+                
+    - can_id: 0x1001117E # address #1 receive current feedback frame
+      use_extended_id: true
+      then:
+        - lambda: |-
+            float value = (x[6]<<8) | (x[7]); //combine bytes into full value
+            value = value / 30; //scale current value
+            ESP_LOGI("canbus", "charger #1 output current realtime feedback:         %.02fA", value);
+            id(rectifier_1_output_current_realtime).publish_state(value);
+            
+
+    - can_id: 0x1082407F # address #2 received statistics frame
+      use_extended_id: true
+      then:
+        #- logger.log:
+        #    level: INFO
+        #    format: "Status Type Byte: 0x%02x Data: 0x%02x 0x%02x 0x%02x 0x%02x"
+        #    args: [ '(uint)x[1]', '(uint)x[4]', '(uint)x[5]', '(uint)x[6]', '(uint)x[7]' ]
+            
+        - lambda: |-
+            auto status_type = x[1];
+            float value = double((x[4]<<24) | (x[5]<<16) | (x[6]<<8) | (x[7])); //combine bytes into full value
+            switch (status_type)
+            {
+              case 0x75:
+                value = value / 1024; //scale voltage value
+                ESP_LOGI("canbus", "charger #2 output voltage: %.02f", value);
+                id(rectifier_2_output_voltage).publish_state(value);
+                break;
+              case 0x76:
+                value = value / 30; //scale voltage value
+                ESP_LOGI("canbus", "charger #2 output current setpoint: %.02f", value);
+                id(rectifier_2_output_current_setpoint).publish_state(value);
+                break;
+              case 0x82:
+                value = value / 1024; //scale voltage value
+                ESP_LOGI("canbus", "charger #2 output current value: %.02f", value);
+                break;
+            }
+            
+    - can_id: 0x1082807e # address #1 receive settings ACK frame -- only sent from PSU if the actual address is used, not the global 0 address
+      use_extended_id: true
+      then:
+        - logger.log:
+            level: INFO
+            format: "------------------------------- charger #2 ACK response: 0x%02x Data: 0x%02x 0x%02x 0x%02x 0x%02x"
+            args: [ '(uint)x[0]', '(uint)x[4]', '(uint)x[5]', '(uint)x[6]', '(uint)x[7]' ]
+        - lambda: |-
+            float value = double((x[4]<<24) | (x[5]<<16) | (x[6]<<8) | (x[7])); //combine bytes into full value
+            switch (x[1])
+            {
+              case 0x00: case 0x01:
+                // ESP_LOGI("canbus", "rectifier #2 ACK response voltage: %.02fV", value / 1024);
+                char message[50];
+                sprintf(message, "ACK response voltage: %.02fV", value / 1024);
+                id(rectifier_2_status).publish_state(message);
+                break;
+              case 0x03: case 0x04:
+                // ESP_LOGI("canbus", "rectifier #2 ACK response current: %.02fA", value / 20);
+                char message1[50];
+                sprintf(message1, "ACK response current: %.02fA", value / 20); // divisor is 20 for setting and the ACK - but 30 for status messages
+                id(rectifier_2_status).publish_state(message1);
+                break;
+            }
+            
+    - can_id: 0x1002117E # address #2 receive current feedback frame
+      use_extended_id: true
+      then:
+        - lambda: |-
+            float value = (x[6]<<8) | (x[7]); //combine bytes into full value
+            value = value / 30; //scale current value
+            ESP_LOGI("canbus", "charger #2 output current realtime feedback: %.02fA", value);
+            id(rectifier_2_current_value).publish_state(value);
+            
+
