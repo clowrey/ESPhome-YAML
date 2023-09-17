@@ -37,7 +37,6 @@ preferences:
 uart:
   rx_pin: RX
   baud_rate: 4800
-
 binary_sensor:
   - platform: gpio
     pin:
@@ -58,23 +57,32 @@ sensor:
   - platform: cse7766
     current:
       name: Current
+      state_class: measurement
+      device_class: current
       accuracy_decimals: 2
     voltage:
       name: Voltage
+      state_class: measurement
+      device_class: voltage
       accuracy_decimals: 1
     power:
       name: Power
+      state_class: measurement
+      device_class: power
       accuracy_decimals: 2
       id: my_power
   - platform: total_daily_energy
     name: Daily Energy
     power_id: my_power
     method: left
+    state_class: total_increasing
+    device_class: energy
     accuracy_decimals: 2
 
 switch:
   - platform: gpio
     name: Relay
+    icon: "mdi:power-socket-us"
     pin: GPIO12
     id: relay
     restore_mode: ALWAYS_ON # *************  Choose this wisely!!!! Depends on application
