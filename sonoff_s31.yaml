@@ -81,20 +81,20 @@ sensor:
       id: my_power
       filters:
         - throttle_average: ${update_interval}
-    apparent_power:
-      name: Apparent Power
-      state_class: measurement
-      device_class: apparent_power
-      accuracy_decimals: 2
-      filters:
-        - throttle_average: ${update_interval}
-    power_factor:
-      name: Power Factor
-      state_class: measurement
-      device_class: power_factor
-      accuracy_decimals: 2
-      filters:
-        - throttle_average: ${update_interval}
+    #apparent_power:
+    #  name: Apparent Power
+    #  state_class: measurement
+    #  device_class: apparent_power
+    #  accuracy_decimals: 2
+    #  filters:
+    #    - throttle_average: ${update_interval}
+    #power_factor:
+    #  name: Power Factor
+    #  state_class: measurement
+    #  device_class: power_factor
+    #  accuracy_decimals: 2
+    #  filters:
+    #    - throttle_average: ${update_interval}
   - platform: total_daily_energy
     name: Daily Energy
     power_id: my_power
